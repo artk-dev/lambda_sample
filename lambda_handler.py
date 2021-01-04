@@ -9,7 +9,8 @@ def lambda_handler(event, context):
 
     #Loops through every file uploaded
     for record in event['Records']:
-        bucket = s3.Bucket(record['s3']['bucket']['name'])
+        bucket_name = record['s3']['bucket']['name']
+        bucket = s3.Bucket(bucket_name)
         key = unquote_plus(record['s3']['object']['key'])
 
         # Temporarily download the xml file for processing
@@ -20,15 +21,11 @@ def lambda_handler(event, context):
         machine_id = get_machine_id_from_file(download_path)
 
         bucket.upload_file(download_path, machine_id+'/'+key[9:])
-    return {
-        'statusCode': 200,
-        'body': json.dumps('File processing successful')
-    }
+        
+        s3.Object(bucket_name,key).delete()
 
 def get_machine_id_from_file(path):
-    with open(path) as xml_file:
-        #Convert XML data into a tree for easy processing
-        tree = ET.parse(path)
-        root = tree.getroot()
+    tree = ET.parse(path)
+    root = tree.getroot()
 
-        return root[0].text
+    return root[0].text
